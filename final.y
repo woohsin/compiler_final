@@ -25,7 +25,8 @@ struct {
 %token MODULUS PLUS MINUS MULTIPLY DIVIDE
 
 %type <unit> PROGRAM STMT_LIST STMT PRINT_STMT EXP 
-%type <unit> NUM_OP LOGICAL_OP AND_OP OR_OP NOT_OP
+%type <unit> NUM_OP LOGICAL_OP AND_OP OR_OP AND_OPS OR_OPS 
+%type <unit> PLUS_OPS PLUS_OP MULTIPLY_OPS MULTIPLY_OP EQUAL_OPS EQUAL_OP
 %type <unit> DEF_STMT FUN_EXP ID_LIST FUN_BODY FUN_CALL PARAM_LIST FUN_NAME 
 %type <unit> IF_EXP TEST_EXP THAN_EXP ELSE_EXP
 
@@ -43,43 +44,65 @@ STMT     : EXP
          | PRINT_STMT
          ;
 
-PRINT_STMT: LPAREN PRINT_NUM EXP RPAREN { if($3.type != NUM){ yyerror("type"); } else { printf("%d\n", $3.val); } }
-          | LPAREN PRINT_BOOL EXP RPAREN { if($3.type != BOOL){ yyerror("type"); } else { printf("#%c\n", ($3.val == 1 ? '#t' : '#f')); } }
+PRINT_STMT: LPAREN PRINT_NUM EXP RPAREN { if($3.type != NUM){ yyerror("type"); } else { printf("%d\n", $3.val); }}
+          | LPAREN PRINT_BOOL EXP RPAREN { if($3.type != BOOL){ yyerror("type"); } else { printf("%s\n", ($3.val == 1 ? "#t" : "#f")); } }
           ;
 
 EXP      : BOOL         { $$ = $1; }
          | NUM          { $$ = $1; }
          | ID           { $$ = $1; }
-         | NUM_OP       
-         | LOGICAL_OP   
-         | FUN_EXP
-         | FUN_CALL
-         | IF_EXP
+         | NUM_OP       { $$ = $1; }
+         | LOGICAL_OP   { $$ = $1; }
+         | FUN_EXP      { $$ = $1; }
+         | FUN_CALL     { $$ = $1; }
+         | IF_EXP       { $$ = $1; }
          ;
 
-NUM_OP   : LPAREN PLUS EXP EXP RPAREN
-         | LPAREN MINUS EXP EXP RPAREN
-         | LPAREN MULTIPLY EXP EXP RPAREN
-         | LPAREN DIVIDE EXP EXP RPAREN
-         | LPAREN MODULUS EXP EXP RPAREN
-         | LPAREN GREATER EXP EXP RPAREN
-         | LPAREN SMALLER EXP EXP RPAREN
-         | LPAREN EQUAL EXP EXP RPAREN
+NUM_OP   : LPAREN PLUS_OPS RPAREN           { $$ = $2;}
+         | LPAREN MINUS EXP EXP RPAREN      { $$.type = NUM; $$.val = $3.val - $4.val;}
+         | LPAREN MULTIPLY_OPS RPAREN       { $$ = $2;}
+         | LPAREN DIVIDE EXP EXP RPAREN     { $$.type = NUM; $$.val = $3.val / $4.val;}
+         | LPAREN MODULUS EXP EXP RPAREN    { $$.type = NUM; $$.val = $3.val % $4.val;}
+         | LPAREN GREATER EXP EXP RPAREN    { $$.type = BOOL; $$.val = $3.val > $4.val;}
+         | LPAREN SMALLER EXP EXP RPAREN    { $$.type = BOOL; $$.val = $3.val < $4.val;}
+         | LPAREN EQUAL_OPS RPAREN          { $$ = $2;}
          ;
 
-LOGICAL_OP : AND_OP EXP EXP
-           | OR_OP EXP EXP
-           | NOT_OP EXP
+PLUS_OPS    :PLUS_OPS EXP   { $$.type = NUM; $$.val = $1.val + $2.val;}
+            |PLUS_OP        { $$ = $1;}
+            ;
+
+MULTIPLY_OPS:MULTIPLY_OPS EXP   { $$.type = NUM; $$.val = $1.val * $2.val;}
+            |MULTIPLY_OP        { $$ = $1;}
+            ;
+
+EQUAL_OPS   :EQUAL_OPS EXP      { $$.type = BOOL; $$.val = $1.val == $2.val;}
+            |EQUAL_OP           { $$ = $1;}
+            ;
+
+PLUS_OP     :PLUS EXP EXP { $$.type = NUM; $$.val = $2.val + $3.val;}
+MULTIPLY_OP :MULTIPLY EXP EXP { $$.type = NUM; $$.val = $2.val * $3.val;}
+EQUAL_OP    :EQUAL EXP EXP { $$.type = NUM; $$.val = $2.val == $3.val;}
+
+LOGICAL_OP : LPAREN AND_OPS RPAREN      { $$ = $2;}
+           | LPAREN OR_OPS RPAREN       { $$ = $2;}
+           | LPAREN NOT EXP RPAREN      { $$.type = BOOL; $$.val = !$3.val; }
            ;
 
-AND_OP   : AND EXP EXP
+AND_OPS  : AND_OPS EXP  { $$.type = BOOL; $$.val = $1.val && $2.val; }
+         | AND_OP       { $$ = $1;}
          ;
 
-OR_OP    : OR EXP EXP
+OR_OPS   : OR_OPS EXP   { $$.type = BOOL; $$.val = $1.val || $2.val; }
+         | OR_OP        { $$ = $1;}
          ;
 
-NOT_OP   : NOT EXP
+AND_OP   : AND EXP EXP  { $$.type = BOOL; $$.val = $2.val && $3.val; }
          ;
+
+OR_OP    : OR EXP EXP   { $$.type = BOOL; $$.val = $2.val || $3.val; }
+         ;
+
 
 DEF_STMT : DEFINE ID EXP
          ;
