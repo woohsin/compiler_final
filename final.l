@@ -1,35 +1,35 @@
 %{
 #include "final.tab.h"
+#include <stdio.h>
 %}
 
 %%
 
-[0-9]+              { yylval = atoi(yytext); return NUMBER; }
-"#t"                { return TRUE; }
-"#f"                { return FALSE; }
-[a-zA-Z_][a-zA-Z0-9_]* { yylval = strdup(yytext); return IDENTIFIER; }
-"("                 { return LPAREN; }
-")"                 { return RPAREN; }
-"+"                 { return PLUS; }
-"-"                 { return MINUS; }
-"*"                 { return MULTIPLY; }
-"/"                 { return DIVIDE; }
-"mod"               { return MOD; }
-">"                 { return GREATER; }
-"<"                 { return SMALLER; }
-"="                 { return EQUAL; }
-"and"               { return AND; }
-"or"                { return OR; }
-"not"               { return NOT; }
-"define"            { return DEFINE; }
-"fun"               { return FUN; }
-"if"                { return IF; }
-"print-num"         { return PRINT_NUM; }
-"print-bool"        { return PRINT_BOOL; }
-[ \t\n]+            ;  // 忽略空白字符
-.                   { printf("Unknown character: %s\n", yytext); }
+"("                { return LPAREN; }
+")"                { return RPAREN; }
+"print-num"        { return PRINT_NUM; }
+"print-bool"       { return PRINT_BOOL; }
+"define"           { return DEFINE; }
+"fun"              { return FUN; }
+"if"               { return IF; }
+"and"              { return AND; }
+"or"               { return OR; }
+"not"              { return NOT; }
+"="                { return EQUAL; }
+">"                { return GREATER; }
+"<"                { return SMALLER; }
+"mod"              { return MODULUS; }
+"+"                { return PLUS; }
+"-"                { return MINUS; }
+"*"                { return MULTIPLY; }
+"/"                { return DIVIDE; }
+"#t"|"#f"          {yylval.unit.type = BOOL; yylval.unit.val = (yytext[1] == 't' ? 1 : 0); return BOOL;}
+0|\-?[0-9]+        {yylval.unit.type = NUM; yylval.unit.val = atoi(yytext); return NUM;}
+[ \t\n\r]+         {  }
+[a-z][0-9a-z\-]* { strcpy(yylval.unit.name, yytext); return ID; }
 
 %%
+
 int yywrap() {
     return 1;
 }

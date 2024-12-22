@@ -1,130 +1,135 @@
-%{//ji3fvbdbgdbgdgfbdgf
+%{
 #include <stdio.h>
 #include <stdlib.h>
-
-// 函數與變數的聲明
-void yyerror(const char *s);
+#include <string.h>
+#include <iostream>
 int yylex();
+void yyerror(const char *s);
+void reduce(const char *s);
 %}
 
-/* Token 定義 */
-%token NUMBER TRUE FALSE IDENTIFIER
-%token PLUS MINUS MULTIPLY DIVIDE MOD GREATER SMALLER EQUAL
-%token AND OR NOT DEFINE FUN IF PRINT_NUM PRINT_BOOL
-%token LPAREN RPAREN
-
-/* 啟始規則 */
-%start program
-
-/* 優先順序與結合性 (可選) */
-// %left PLUS MINUS
-// %left MULTIPLY DIVIDE MOD
-
-%%
-
-program:
-    statement_list
-;
-
-statement_list:
-    statement
-    | statement_list statement
-;
-
-statement:
-    expression
-    | definition_statement
-    | print_statement
-;
-
-print_statement:
-    LPAREN PRINT_NUM expression RPAREN
-        { /* 在這裡實現打印數值的邏輯 */ }
-    | LPAREN PRINT_BOOL expression RPAREN
-        { /* 在這裡實現打印布林值的邏輯 */ }
-;
-
-expression:
-    bool_val
-        { /* 在這裡處理布林值的邏輯 */ }
-    | number
-        { /* 在這裡處理數值的邏輯 */ }
-    | VARIABLE
-        { /* 在這裡處理變數邏輯 */ }
-    | numerical_operation
-    | logical_operation
-    | function_expression
-    | function_call
-    | if_expression
-;
-
-bool_val:
-    TRUE
-    | FALSE
-;
-
-number:
-    NUMBER
-;
-
-numerical_operation:
-    LPAREN PLUS expression_list RPAREN
-    | LPAREN MINUS expression expression RPAREN
-    | LPAREN MULTIPLY expression_list RPAREN
-    | LPAREN DIVIDE expression expression RPAREN
-    | LPAREN MOD expression expression RPAREN
-    | LPAREN GREATER expression expression RPAREN
-    | LPAREN SMALLER expression expression RPAREN
-    | LPAREN EQUAL expression_list RPAREN
-;
-
-logical_operation:
-    LPAREN AND expression_list RPAREN
-    | LPAREN OR expression_list RPAREN
-    | LPAREN NOT expression RPAREN
-;
-
-definition_statement:
-    LPAREN DEFINE IDENTIFIER expression RPAREN
-        { /* 在這裡實現變數定義邏輯 */ }
-;
-
-function_expression:
-    LPAREN FUN LPAREN identifier_list RPAREN expression RPAREN
-        { /* 在這裡實現函數定義邏輯 */ }
-;
-
-function_call:
-    LPAREN IDENTIFIER expression_list RPAREN
-        { /* 在這裡實現函數呼叫邏輯 */ }
-;
-
-if_expression:
-    LPAREN IF expression expression expression RPAREN
-        { /* 在這裡實現條件判斷邏輯 */ }
-;
-
-expression_list:
-    expression
-        { /* 初始化表達式列表 */ }
-    | expression_list expression
-        { /* 向表達式列表添加表達式 */ }
-;
-
-identifier_list:
-    IDENTIFIER
-        { /* 初始化變數列表 */ }
-    | identifier_list IDENTIFIER
-        { /* 向變數列表添加變數 */ }
-;
-
-%%
-
-void yyerror(const char *s) {
-    fprintf(stderr, "Error: %s\n", s);
+%union {
+int ival;
+struct {
+    int type;
+    int val;
+    char name[];
+} unit;
 }
 
+%token <unit> NUM BOOL ID
+%token PRINT_NUM PRINT_BOOL LPAREN RPAREN
+%token DEFINE FUN IF
+%token AND OR NOT
+%token EQUAL GREATER SMALLER
+%token MODULUS PLUS MINUS MULTIPLY DIVIDE
+
+%type <unit> PROGRAM STMT_LIST STMT PRINT_STMT EXP 
+%type <unit> NUM_OP LOGICAL_OP AND_OP OR_OP NOT_OP
+%type <unit> DEF_STMT FUN_EXP ID_LIST FUN_BODY FUN_CALL PARAM_LIST FUN_NAME 
+%type <unit> IF_EXP TEST_EXP THAN_EXP ELSE_EXP
+
+%%
+
+PROGRAM  : STMT_LIST
+         ;
+
+STMT_LIST: STMT
+         | STMT_LIST STMT
+         ;
+
+STMT     : EXP
+         | DEF_STMT
+         | PRINT_STMT
+         ;
+
+PRINT_STMT: LPAREN PRINT_NUM EXP RPAREN { if($3.type != NUM){ yyerror("type"); } else { printf("%d\n", $3.val); } }
+          | LPAREN PRINT_BOOL EXP RPAREN { if($3.type != BOOL){ yyerror("type"); } else { printf("#%c\n", ($3.val == 1 ? '#t' : '#f')); } }
+          ;
+
+EXP      : BOOL         { $$ = $1; }
+         | NUM          { $$ = $1; }
+         | ID           { $$ = $1; }
+         | NUM_OP       
+         | LOGICAL_OP   
+         | FUN_EXP
+         | FUN_CALL
+         | IF_EXP
+         ;
+
+NUM_OP   : LPAREN PLUS EXP EXP RPAREN
+         | LPAREN MINUS EXP EXP RPAREN
+         | LPAREN MULTIPLY EXP EXP RPAREN
+         | LPAREN DIVIDE EXP EXP RPAREN
+         | LPAREN MODULUS EXP EXP RPAREN
+         | LPAREN GREATER EXP EXP RPAREN
+         | LPAREN SMALLER EXP EXP RPAREN
+         | LPAREN EQUAL EXP EXP RPAREN
+         ;
+
+LOGICAL_OP : AND_OP EXP EXP
+           | OR_OP EXP EXP
+           | NOT_OP EXP
+           ;
+
+AND_OP   : AND EXP EXP
+         ;
+
+OR_OP    : OR EXP EXP
+         ;
+
+NOT_OP   : NOT EXP
+         ;
+
+DEF_STMT : DEFINE ID EXP
+         ;
+
+FUN_EXP  : FUN ID_LIST FUN_BODY
+         ;
+
+ID_LIST  : ID
+         | ID_LIST ID
+         ;
+
+FUN_BODY : EXP
+         ;
+
+FUN_CALL : FUN_NAME PARAM_LIST
+         ;
+
+PARAM_LIST : EXP
+           | PARAM_LIST EXP
+           ;
+
+FUN_NAME : ID
+         ;
+
+IF_EXP   : IF TEST_EXP THAN_EXP ELSE_EXP
+         ;
+
+TEST_EXP : EXP
+         ;
+
+THAN_EXP : EXP
+         ;
+
+ELSE_EXP : EXP
+         ;
+
+%%
+
 int main() {
-    printf("Mini-LISP Parser\n");
-    return yyparse();
+    yyparse();
+    return 0;
+}
+
+void yyerror(const char *s) {
+    if(strcmp(s, "type") == 0) {
+        printf("Type error!");
+    }
+    else {
+        printf("syntax error");
+    }
+    exit(1);
+    return;
 }
