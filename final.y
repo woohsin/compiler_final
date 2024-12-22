@@ -22,8 +22,6 @@ int yylex();
 
 %%
 
-/* 文法規則 */
-
 program:
     statement_list
 ;
@@ -121,8 +119,6 @@ identifier_list:
 ;
 
 %%
-
-/* 輔助函數 */
 
 void yyerror(const char *s) {
     fprintf(stderr, "Error: %s\n", s);
