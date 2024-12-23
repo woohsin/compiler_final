@@ -28,7 +28,7 @@ struct {
 %type <unit> NUM_OP LOGICAL_OP AND_OP OR_OP AND_OPS OR_OPS 
 %type <unit> PLUS_OPS PLUS_OP MULTIPLY_OPS MULTIPLY_OP EQUAL_OPS EQUAL_OP
 %type <unit> DEF_STMT FUN_EXP ID_LIST FUN_BODY FUN_CALL PARAM_LIST FUN_NAME 
-%type <unit> IF_EXP TEST_EXP THAN_EXP ELSE_EXP
+%type <unit> IF_EXP
 
 %%
 
@@ -44,7 +44,7 @@ STMT     : EXP
          | PRINT_STMT
          ;
 
-PRINT_STMT: LPAREN PRINT_NUM EXP RPAREN { if($3.type != NUM){ yyerror("type"); } else { printf("%d\n", $3.val); }}
+PRINT_STMT: LPAREN PRINT_NUM EXP RPAREN { if($3.type != NUM){ yyerror("type"); } else { printf("%d\n", $3.val); } }
           | LPAREN PRINT_BOOL EXP RPAREN { if($3.type != BOOL){ yyerror("type"); } else { printf("%s\n", ($3.val == 1 ? "#t" : "#f")); } }
           ;
 
@@ -82,7 +82,7 @@ EQUAL_OPS   :EQUAL_OPS EXP      { $$.type = BOOL; $$.val = $1.val == $2.val;}
 
 PLUS_OP     :PLUS EXP EXP { $$.type = NUM; $$.val = $2.val + $3.val;}
 MULTIPLY_OP :MULTIPLY EXP EXP { $$.type = NUM; $$.val = $2.val * $3.val;}
-EQUAL_OP    :EQUAL EXP EXP { $$.type = NUM; $$.val = $2.val == $3.val;}
+EQUAL_OP    :EQUAL EXP EXP { $$.type = BOOL; $$.val = $2.val == $3.val;}
 
 LOGICAL_OP : LPAREN AND_OPS RPAREN      { $$ = $2;}
            | LPAREN OR_OPS RPAREN       { $$ = $2;}
@@ -127,16 +127,7 @@ PARAM_LIST : EXP
 FUN_NAME : ID
          ;
 
-IF_EXP   : IF TEST_EXP THAN_EXP ELSE_EXP
-         ;
-
-TEST_EXP : EXP
-         ;
-
-THAN_EXP : EXP
-         ;
-
-ELSE_EXP : EXP
+IF_EXP   : LPAREN IF EXP EXP EXP RPAREN  { if($3.type != BOOL){ yyerror("type"); } else { $$ = $3.val ? $4 : $5; } }
          ;
 
 %%
