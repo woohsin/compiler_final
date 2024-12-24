@@ -27,7 +27,8 @@
 "#f"               { yylval.unit.type = BOOL; yylval.unit.val = 0; return BOOL;}
 0|\-?[0-9]+        { yylval.unit.type = NUM; yylval.unit.val = atoi(yytext); return NUM;}
 [ \t\n\r]+         {  }
-[a-z][0-9a-z\-]* { strcpy(yylval.unit.name, yytext); return ID; }
+[a-z][0-9a-z\-]*   { strcpy(yylval.unit.name, yytext); return ID; }
+.                  {  }
 
 %%
 

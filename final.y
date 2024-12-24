@@ -1,8 +1,11 @@
 %{
+#include <iostream>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <iostream>
+#include <map>
+using namespace std;
+map<string, int> id_map;
 int yylex();
 void yyerror(const char *s);
 void reduce(const char *s);
@@ -10,10 +13,11 @@ void reduce(const char *s);
 
 %union {
 int ival;
+char name[100];
 struct {
     int type;
     int val;
-    char name[];
+    char name[100];
 } unit;
 }
 
@@ -50,7 +54,7 @@ PRINT_STMT: LPAREN PRINT_NUM EXP RPAREN { if($3.type != NUM){ yyerror("type"); }
 
 EXP      : BOOL         { $$ = $1; }
          | NUM          { $$ = $1; }
-         | ID           { $$ = $1; }
+         | ID           { $$.type = NUM; $$.val = id_map[$1.name]; }
          | NUM_OP       { $$ = $1; }
          | LOGICAL_OP   { $$ = $1; }
          | FUN_EXP      { $$ = $1; }
@@ -68,7 +72,7 @@ NUM_OP   : LPAREN PLUS_OPS RPAREN           { $$ = $2;}
          | LPAREN EQUAL_OPS RPAREN          { $$ = $2;}
          ;
 
-PLUS_OPS    :PLUS_OPS EXP   { $$.type = NUM; $$.val = $1.val + $2.val;}
+PLUS_OPS    :PLUS_OPS EXP   { $$.type = NUM; $$.val = $1.val + $2.val; /*printf("PLUS_OPS: %d\n", $1.val + $2.val);*/}
             |PLUS_OP        { $$ = $1;}
             ;
 
@@ -80,9 +84,31 @@ EQUAL_OPS   :EQUAL_OPS EXP      { $$.type = BOOL; $$.val = $1.val == $2.val;}
             |EQUAL_OP           { $$ = $1;}
             ;
 
-PLUS_OP     :PLUS EXP EXP { $$.type = NUM; $$.val = $2.val + $3.val;}
-MULTIPLY_OP :MULTIPLY EXP EXP { $$.type = NUM; $$.val = $2.val * $3.val;}
-EQUAL_OP    :EQUAL EXP EXP { $$.type = BOOL; $$.val = $2.val == $3.val;}
+PLUS_OP     :PLUS EXP EXP { 
+                if($2.type == NUM && $3.type == NUM){
+                    $$.type = NUM;
+                    $$.val = $2.val + $3.val;
+                    //printf("PLUS_OP: %d\n", $2.val + $3.val);
+                }else{
+                    yyerror("type");
+                }
+            }
+MULTIPLY_OP :MULTIPLY EXP EXP { 
+                if($2.type == NUM && $3.type == NUM){
+                    $$.type = NUM;
+                    $$.val = $2.val * $3.val;
+                }else{
+                    yyerror("type");
+                }
+            }
+EQUAL_OP    :EQUAL EXP EXP { 
+                if($2.type == NUM && $3.type == NUM){
+                    $$.type = BOOL;
+                    $$.val = $2.val == $3.val;
+                }else{
+                    yyerror("type");
+                }
+            }
 
 LOGICAL_OP : LPAREN AND_OPS RPAREN      { $$ = $2;}
            | LPAREN OR_OPS RPAREN       { $$ = $2;}
@@ -104,7 +130,17 @@ OR_OP    : OR EXP EXP   { $$.type = BOOL; $$.val = $2.val || $3.val; }
          ;
 
 
-DEF_STMT : DEFINE ID EXP
+DEF_STMT : LPAREN DEFINE ID EXP RPAREN    { 
+            if($4.type != NUM){
+                yyerror("type");
+            }
+            else if(id_map.count($3.name) != 0){
+                printf("WARNING: Redefining is not allowed.\n");
+            }
+            else{
+                id_map[$3.name] = $4.val;
+            } 
+         }
          ;
 
 FUN_EXP  : FUN ID_LIST FUN_BODY
@@ -127,7 +163,13 @@ PARAM_LIST : EXP
 FUN_NAME : ID
          ;
 
-IF_EXP   : LPAREN IF EXP EXP EXP RPAREN  { if($3.type != BOOL){ yyerror("type"); } else { $$ = $3.val ? $4 : $5; } }
+IF_EXP  : LPAREN IF EXP EXP EXP RPAREN  { 
+            if($3.type != BOOL || $4.type != NUM || $5.type != NUM){ 
+                yyerror("type"); 
+            } else { 
+                $$ = $3.val ? $4 : $5; 
+            } 
+        }
          ;
 
 %%
