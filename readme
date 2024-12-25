@@ -1,2 +1,3 @@
 flex final.l && bison -d final.y && g++ final.tab.c lex.yy.c -o final.exe
-final.exe < public_test_data\06_1.lsp
+final.exe < public_test_data\07_1.lsp
+del *.tab.*
